@@ -4,7 +4,7 @@ import MPDashboard from './pages/MPDashboard';
 import WhatsAppSimulator from './pages/WhatsAppSimulator';
 import { useState, useEffect } from 'react';
 import { initialComplaints } from './mockData';
-import { User, LayoutDashboard, MessageCircle, Cloud, CloudOff } from 'lucide-react';
+import { User, MessageCircle, Cloud, CloudOff, ShieldCheck } from 'lucide-react';
 import { isAppwriteConfigured, fetchComplaints, createComplaint, subscribeToComplaints } from './lib/appwrite';
 
 function App() {
@@ -108,16 +108,14 @@ function App() {
   return (
     <Router>
       <div className="min-h-screen bg-dark-bg text-slate-100 flex flex-col">
-        {/* Premium Glass Navigation */}
+        
+        {/* Citizen Navigation (Center) */}
         <nav className="fixed top-4 left-1/2 -translate-x-1/2 z-50 glass-panel rounded-2xl px-2 py-1.5 flex items-center gap-1 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
           <NavLink to="/citizen" className={navLinkClass}>
             <User size={15} className="text-accent-cyan" /> Portal
           </NavLink>
           <NavLink to="/whatsapp" className={navLinkClass}>
             <MessageCircle size={15} className="text-green-400" /> WhatsApp
-          </NavLink>
-          <NavLink to="/dashboard" className={navLinkClass}>
-            <LayoutDashboard size={15} className="text-accent-purple" /> Dashboard
           </NavLink>
           
           <div className="w-px h-5 bg-white/10 mx-1"></div>
@@ -133,6 +131,21 @@ function App() {
             )}
           </div>
         </nav>
+
+        {/* Admin Portal Button (Top Right) */}
+        <NavLink 
+          to="/dashboard" 
+          className={({ isActive }) => 
+            `fixed top-4 right-4 z-50 glass-panel rounded-xl px-4 py-2.5 flex items-center gap-2 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] text-sm font-semibold transition-all duration-200 group ${
+              isActive 
+                ? 'bg-accent-purple/15 border-accent-purple/30 text-white' 
+                : 'text-slate-400 hover:text-white hover:bg-white/5 hover:border-accent-purple/20'
+            }`
+          }
+        >
+          <ShieldCheck size={16} className="text-accent-purple group-hover:scale-110 transition-transform" />
+          <span>Admin Portal</span>
+        </NavLink>
 
         <main className="flex-1 pt-20 overflow-x-hidden">
           <Routes>
