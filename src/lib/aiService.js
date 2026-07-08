@@ -79,20 +79,22 @@ Respond with ONLY a raw JSON object (no markdown fences): {"reasoning": "..."}`;
 }
 
 /**
- * Deep Clustering: Analyze a list of raw complaints and group them into specific actionable themes.
+ * Deep Clustering: Analyze a list of raw complaints, enriched with Demographic/Infra-Gap data, 
+ * and group them into specific actionable themes.
  */
 export async function generateThemes(complaints) {
   if (!complaints || complaints.length === 0) return [];
   
   const complaintList = complaints
     .slice(0, 50) // limit to avoid massive context for hackathon demo
-    .map(c => `ID:${c.id} | Priority:${c.priority} | Text:${c.translation}`)
+    .map(c => `ID:${c.id} | Zone:${c.infraZone} (InfraGap:${c.infraGapScore}/100) | Priority:${c.priority} | Text:${c.translation}`)
     .join('\n');
 
   const prompt = `You are an AI planning assistant for an Indian MP's office.
-Analyze the following list of citizen submissions and cluster them into 3 to 5 highly specific, actionable development themes (e.g., "Sector 4 Severe Waterlogging", "Main Road Streetlight Outages", "Primary School Roof Repairs").
+Analyze the following list of citizen submissions. Each submission includes the Zone it originated from and that Zone's "InfraGap" score (0-100, where 100 means severe lack of existing infrastructure/schools/hospitals).
 
-Do not just use generic categories. Find the actual recurring specific issues.
+Your task is to cluster these submissions into 3 to 5 highly specific, actionable development themes (e.g., "Sector 4 Severe Waterlogging", "South-East Outskirts Clinic Construction").
+CRITICAL INSTRUCTION: You MUST heavily weigh the "InfraGap" score when determining the final Confidence Score for a theme. A theme with few complaints but a massive InfraGap score (e.g., 92/100) should rank higher than a theme with many complaints in a well-served area (e.g., 30/100).
 
 Submissions:
 ${complaintList}
@@ -102,9 +104,9 @@ Respond with ONLY a raw JSON array of objects (no markdown fences) where each ob
   "id": "unique-theme-id",
   "name": "Specific Theme Name",
   "category": "One of the broad categories (e.g. Water & Drainage, Electricity)",
-  "confidenceScore": "A number from 0 to 100 based on urgency and volume of the grouped submissions",
+  "confidenceScore": "A number from 0 to 100 heavily weighting the InfraGap score of the affected zones alongside submission volume/urgency",
   "complaintIds": ["array of complaint IDs that belong to this theme"],
-  "reasoning": "Short synthesis (max 30 words) of why this specific theme is a priority based on the matched submissions."
+  "reasoning": "Short synthesis (max 40 words) explaining the priority, explicitly calling out how the demographic/infrastructure gap data justifies the rank."
 }`;
 
   return callGemini(prompt);

@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { MapContainer, TileLayer, Marker, Popup, CircleMarker, GeoJSON } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import { synthesizeProjectReasoning, generateThemes } from '../lib/aiService';
-import { constituencyWards } from '../lib/mockDemographics';
+import { constituencyWards, getInfraGapForLocation } from '../lib/mockDemographics';
 
 const PROJECT_NAMES = {
   'Water & Drainage': 'Drainage & Waterlogging Overhaul',
@@ -20,7 +20,14 @@ const PROJECT_NAMES = {
 // Baseline ranking logic (Fast, groups by category)
 function rankProjectsFromComplaints(complaints) {
   const groups = {};
-  complaints.forEach((c) => {
+  
+  // Enrich complaints with demographic infra data based on their lat/lng
+  const enrichedComplaints = complaints.map(c => {
+    const infraData = getInfraGapForLocation(c.lat, c.lng);
+    return { ...c, infraGapScore: infraData.score, infraZone: infraData.zone };
+  });
+
+  enrichedComplaints.forEach((c) => {
     const cat = c.category || 'General';
     if (!groups[cat]) groups[cat] = [];
     groups[cat].push(c);
@@ -31,9 +38,15 @@ function rankProjectsFromComplaints(complaints) {
   return Object.entries(groups)
     .map(([category, items]) => {
       const highCount = items.filter((c) => c.priority === 'High').length;
-      const volumeScore = (items.length / maxCount) * 70;
-      const urgencyScore = (highCount / items.length) * 30;
-      const confidenceScore = Math.round(Math.min(99, volumeScore + urgencyScore + 15));
+      
+      const volumeScore = (items.length / maxCount) * 50; // 50% weight on volume
+      const urgencyScore = (highCount / items.length) * 20; // 20% weight on urgency
+      
+      // Calculate average demographic infrastructure gap score for this category
+      const avgInfraGap = items.reduce((acc, c) => acc + c.infraGapScore, 0) / items.length;
+      const infraGapWeight = (avgInfraGap / 100) * 30; // 30% weight directly from demographic reality!
+
+      const confidenceScore = Math.round(Math.min(99, volumeScore + urgencyScore + infraGapWeight + 10));
       return {
         id: category,
         name: PROJECT_NAMES[category] || `${category} Improvement Initiative`,
@@ -73,7 +86,12 @@ export default function MPDashboard({ complaints }) {
   const handleRunClustering = async () => {
     setIsClustering(true);
     try {
-      const themes = await generateThemes(complaints);
+      const enrichedComplaints = complaints.map(c => {
+        const infraData = getInfraGapForLocation(c.lat, c.lng);
+        return { ...c, infraGapScore: infraData.score, infraZone: infraData.zone };
+      });
+      
+      const themes = await generateThemes(enrichedComplaints);
       // Ensure it maps to our UI
       const formattedThemes = themes.map(t => ({
         ...t,

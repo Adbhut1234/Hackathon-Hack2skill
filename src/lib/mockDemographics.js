@@ -40,11 +40,11 @@ export const constituencyWards = {
         type: "Polygon",
         coordinates: [
           [
-            [80.940, 26.845],
+            [80.935, 26.845],
             [80.955, 26.845],
             [80.955, 26.835],
-            [80.940, 26.835],
-            [80.940, 26.845]
+            [80.935, 26.835],
+            [80.935, 26.845]
           ]
         ]
       }
@@ -61,14 +61,38 @@ export const constituencyWards = {
         type: "Polygon",
         coordinates: [
           [
-            [80.955, 26.845],
-            [80.970, 26.845],
-            [80.970, 26.830],
-            [80.950, 26.830],
-            [80.955, 26.845]
+            [80.955, 26.865],
+            [80.975, 26.865],
+            [80.975, 26.830],
+            [80.955, 26.830],
+            [80.955, 26.865]
           ]
         ]
       }
     }
   ]
 };
+
+// Helper function to map a complaint's lat/lng to the demographic gap score
+export function getInfraGapForLocation(lat, lng) {
+  for (const feature of constituencyWards.features) {
+    const poly = feature.geometry.coordinates[0];
+    let inside = false;
+    for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+      const px = poly[i][0], py = poly[i][1];
+      const pjx = poly[j][0], pjy = poly[j][1];
+      
+      const intersect = ((py > lat) !== (pjy > lat))
+          && (lng < (pjx - px) * (lat - py) / (pjy - py) + px);
+      if (intersect) inside = !inside;
+    }
+    if (inside) {
+      return { 
+        score: feature.properties.gapScore, 
+        zone: feature.properties.name,
+        notes: feature.properties.notes
+      };
+    }
+  }
+  return { score: 50, zone: "Unmapped Zone", notes: "Average baseline data." }; // Default fallback
+}
