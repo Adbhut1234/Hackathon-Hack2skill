@@ -13,6 +13,8 @@ export default function CitizenPortal({ onAddComplaint }) {
   // New states for voice and photo
   const [isListening, setIsListening] = useState(false);
   const [photoPreview, setPhotoPreview] = useState(null);
+  const [location, setLocation] = useState(null);
+  const [isGettingLocation, setIsGettingLocation] = useState(false);
   const fileInputRef = useRef(null);
 
   const handleVoiceClick = () => {
@@ -75,6 +77,34 @@ export default function CitizenPortal({ onAddComplaint }) {
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
+  const handleLocationClick = () => {
+    if (!navigator.geolocation) {
+      alert("Geolocation is not supported by your browser.");
+      return;
+    }
+
+    setIsGettingLocation(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setLocation({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude
+        });
+        setIsGettingLocation(false);
+      },
+      (error) => {
+        console.error("Geolocation error", error);
+        alert("Unable to retrieve your location. Falling back to default constituency location.");
+        setLocation({
+          lat: 26.8504 + (Math.random() - 0.5) * 0.01,
+          lng: 80.9499 + (Math.random() - 0.5) * 0.01
+        });
+        setIsGettingLocation(false);
+      },
+      { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+    );
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!description.trim() && !photoPreview) return;
@@ -101,8 +131,8 @@ export default function CitizenPortal({ onAddComplaint }) {
 
     const newComplaint = {
       id: Date.now(),
-      lat: 26.8504 + (Math.random() - 0.5) * 0.01,
-      lng: 80.9499 + (Math.random() - 0.5) * 0.01,
+      lat: location ? location.lat : 26.8504 + (Math.random() - 0.5) * 0.01,
+      lng: location ? location.lng : 80.9499 + (Math.random() - 0.5) * 0.01,
       category: analysis.category,
       translation: analysis.translation,
       originalText: description,
@@ -123,6 +153,7 @@ export default function CitizenPortal({ onAddComplaint }) {
       setIsSuccess(false);
       setDescription('');
       setPhotoPreview(null);
+      setLocation(null);
       if (fileInputRef.current) fileInputRef.current.value = '';
       setDetectedLanguage(null);
     }, 3500);
@@ -239,8 +270,20 @@ export default function CitizenPortal({ onAddComplaint }) {
                 >
                   <Camera size={22} className="group-hover:scale-110 transition-transform" />
                 </button>
-                <button type="button" className="flex-1 flex justify-center items-center py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-colors text-slate-300 hover:text-accent-cyan group">
-                  <MapPin size={22} className="group-hover:scale-110 transition-transform" />
+                <button 
+                  type="button" 
+                  onClick={handleLocationClick}
+                  disabled={isGettingLocation}
+                  className={`flex-1 flex justify-center items-center py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-colors ${
+                    location ? 'text-accent-cyan bg-accent-cyan/10 border-accent-cyan/30 shadow-[0_0_15px_rgba(0,240,255,0.2)]' : 
+                    isGettingLocation ? 'text-amber-400 bg-amber-400/10 border-amber-400/30' : 'text-slate-300 hover:text-accent-cyan'
+                  } group`}
+                >
+                  {isGettingLocation ? (
+                    <Loader2 size={22} className="animate-spin text-amber-400" />
+                  ) : (
+                    <MapPin size={22} className={`${location ? 'text-accent-cyan' : 'group-hover:scale-110 transition-transform'}`} />
+                  )}
                 </button>
               </div>
 
