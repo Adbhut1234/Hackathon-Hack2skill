@@ -33,6 +33,23 @@ export default function WhatsAppSimulator({ onAddComplaint }) {
     setMessages(prev => [...prev, userMsg]);
     setIsTyping(true);
 
+    // Detect simple greetings
+    const greetings = ['hi', 'hello', 'hey', 'namaste', 'pranam', 'hola', 'yo', 'good morning', 'good afternoon', 'good evening', 'help'];
+    const cleanedText = text.trim().toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?]/g,"");
+    
+    if (greetings.includes(cleanedText)) {
+      setTimeout(() => {
+        setIsTyping(false);
+        setMessages(prev => [...prev, { 
+          id: Date.now() + 1, 
+          text: "Hello! 😊 How can I assist you today?\n\nPlease describe any infrastructure or development issues in your area (e.g. water leakage, broken roads, power cuts) so I can record it.", 
+          sender: "bot", 
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) 
+        }]);
+      }, 800);
+      return;
+    }
+
     if (hasSubmitted) {
       // Just chat pleasantly if already submitted
       setTimeout(() => {
