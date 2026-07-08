@@ -18,7 +18,16 @@ function App() {
         try {
           const dbComplaints = await fetchComplaints();
           if (dbComplaints && dbComplaints.length > 0) {
-            setComplaints(dbComplaints);
+            // Strip out any fake data that might have been saved historically
+            const realComplaints = dbComplaints.filter(c => {
+              const text = c.translation || '';
+              return !text.includes('Severe waterlogging') && 
+                     !text.includes('Deep potholes') && 
+                     !text.includes('Frequent power cuts') && 
+                     !text.includes('Garbage dump') && 
+                     !text.includes('Bus stop shelter');
+            });
+            setComplaints(realComplaints);
           } else {
             setComplaints([]);
           }
@@ -37,7 +46,17 @@ function App() {
       const saved = localStorage.getItem('complaints');
       if (saved) {
         try {
-          setComplaints(JSON.parse(saved));
+          let parsed = JSON.parse(saved);
+          parsed = parsed.filter(c => {
+            const text = c.translation || '';
+            return !text.includes('Severe waterlogging') && 
+                   !text.includes('Deep potholes') && 
+                   !text.includes('Frequent power cuts') && 
+                   !text.includes('Garbage dump') && 
+                   !text.includes('Bus stop shelter');
+          });
+          setComplaints(parsed);
+          localStorage.setItem('complaints', JSON.stringify(parsed));
         } catch (e) {
           setComplaints([]);
         }
