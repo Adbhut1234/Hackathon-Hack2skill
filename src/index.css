@@ -1,0 +1,21 @@
+@import "tailwindcss";
+
+@theme {
+  --color-accent-cyan: #00f0ff;
+  --color-accent-purple: #bf00ff;
+  --color-dark-bg: #0f172a;
+  --color-glass-bg: rgba(255, 255, 255, 0.05);
+  --color-glass-border: rgba(255, 255, 255, 0.1);
+}
+
+@layer base {
+  body {
+    @apply bg-dark-bg text-slate-100 antialiased selection:bg-accent-purple selection:text-white;
+  }
+}
+
+@layer utilities {
+  .glass-panel {
+    @apply bg-glass-bg backdrop-blur-md border border-glass-border shadow-xl;
+  }
+}
