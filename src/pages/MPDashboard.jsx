@@ -246,7 +246,7 @@ export default function MPDashboard({ complaints }) {
                     layer.bindPopup(`
                       <div style="min-width:220px;font-family:Inter,sans-serif;">
                         <strong style="font-size:13px;color:#1e293b;">${p.name}</strong>
-                        <p style="font-size:10px;color:#94a3b8;margin:2px 0 6px;">Wards: ${p.wardNumbers} • Census 2011</p>
+                        <p style="font-size:10px;color:#94a3b8;margin:2px 0 6px;">Wards: ${p.wardNumbers} • Mock Data</p>
                         <table style="width:100%;font-size:11px;border-collapse:collapse;">
                           <tr><td style="color:#64748b;padding:2px 0;">Population</td><td style="text-align:right;font-weight:600;color:#1e293b;">${p.population?.toLocaleString()}</td></tr>
                           <tr><td style="color:#64748b;padding:2px 0;">Literacy Rate</td><td style="text-align:right;font-weight:600;color:#1e293b;">${p.literacyRate}%</td></tr>
