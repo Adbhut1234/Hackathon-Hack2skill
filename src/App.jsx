@@ -4,7 +4,6 @@ import MPDashboard from './pages/MPDashboard';
 import WhatsAppSimulator from './pages/WhatsAppSimulator';
 import AdminLogin from './pages/AdminLogin';
 import { useState, useEffect } from 'react';
-import { initialComplaints } from './mockData';
 import { User, MessageCircle, Cloud, CloudOff, ShieldCheck, LogOut } from 'lucide-react';
 import { isAppwriteConfigured, fetchComplaints, createComplaint, subscribeToComplaints } from './lib/appwrite';
 
@@ -21,12 +20,7 @@ function App() {
           if (dbComplaints && dbComplaints.length > 0) {
             setComplaints(dbComplaints);
           } else {
-            const seeds = [...initialComplaints];
-            for (const s of seeds) {
-              await createComplaint(s);
-            }
-            const populated = await fetchComplaints();
-            setComplaints(populated || initialComplaints);
+            setComplaints([]);
           }
           setIsAppwriteOnline(true);
         } catch (e) {
@@ -45,10 +39,10 @@ function App() {
         try {
           setComplaints(JSON.parse(saved));
         } catch (e) {
-          setComplaints(initialComplaints);
+          setComplaints([]);
         }
       } else {
-        setComplaints(initialComplaints);
+        setComplaints([]);
       }
     }
 

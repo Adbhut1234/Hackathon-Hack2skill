@@ -164,10 +164,10 @@ export default function MPDashboard({ complaints }) {
     };
   };
 
-  const totalRequests = 1204 + complaints.length;
-  const highPriority = complaints.filter(c => c.priority === 'High').length + 105;
-  const resolved = Math.floor(complaints.length * 0.4) + 342;
-  const resolutionRate = Math.min(99, Math.round((resolved / totalRequests) * 100) + 40) + '%';
+  const totalRequests = complaints.length;
+  const highPriority = complaints.filter(c => c.priority === 'High').length;
+  const resolved = complaints.filter(c => c.status === 'Resolved' || c.status === 'Completed').length;
+  const resolutionRate = totalRequests > 0 ? Math.round((resolved / totalRequests) * 100) + '%' : '0%';
 
   const stats = [
     { label: 'Total Requests', value: totalRequests.toLocaleString(), icon: Users, color: 'text-accent-cyan' },
