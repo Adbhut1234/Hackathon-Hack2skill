@@ -132,9 +132,9 @@ export default function WhatsAppSimulator({ onAddComplaint }) {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[calc(100vh-5rem)] p-4 md:p-6">
+    <div className="flex flex-col items-center justify-center min-h-[calc(100vh-5rem)] p-2 md:p-6">
       
-      <div className="w-full max-w-sm h-[700px] bg-[#EFEAE2] rounded-3xl overflow-hidden shadow-2xl flex flex-col relative border-4 border-slate-800">
+      <div className="w-full max-w-sm h-[80vh] min-h-[500px] md:h-[700px] bg-[#EFEAE2] rounded-3xl overflow-hidden shadow-2xl flex flex-col relative border-4 border-slate-800">
         
         {/* WhatsApp Header */}
         <div className="bg-[#008069] text-white p-3 flex items-center justify-between shadow-md z-10">

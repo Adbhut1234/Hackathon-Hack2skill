@@ -111,8 +111,8 @@ function App() {
     <Router>
       <div className="min-h-screen bg-dark-bg text-slate-100 flex flex-col">
         
-        {/* Citizen Navigation (Center) */}
-        <nav className="fixed top-4 left-1/2 -translate-x-1/2 z-50 glass-panel rounded-2xl px-2 py-1.5 flex items-center gap-1 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
+        {/* Citizen Navigation (Bottom on Mobile, Center Top on Desktop) */}
+        <nav className="fixed bottom-6 md:bottom-auto md:top-4 left-1/2 -translate-x-1/2 z-[100] glass-panel rounded-full md:rounded-2xl px-3 md:px-2 py-2 md:py-1.5 flex items-center justify-center gap-2 md:gap-1 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.6)] border border-white/10 w-[85%] md:w-auto max-w-sm md:max-w-none">
           <NavLink to="/citizen" className={navLinkClass}>
             <User size={15} className="text-accent-cyan" /> Portal
           </NavLink>
@@ -174,7 +174,7 @@ function App() {
           </NavLink>
         )}
 
-        <main className="flex-1 pt-20 overflow-x-hidden">
+        <main className="flex-1 pt-20 pb-24 md:pb-0 overflow-x-hidden">
           <Routes>
             <Route path="/" element={<CitizenPortal onAddComplaint={addComplaint} />} />
             <Route path="/citizen" element={<CitizenPortal onAddComplaint={addComplaint} />} />
