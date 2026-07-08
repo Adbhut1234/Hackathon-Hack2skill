@@ -1,9 +1,49 @@
-import React, { useState } from 'react';
-import { aiProjects } from '../mockData';
-import { Activity, AlertTriangle, CheckCircle, Clock, ChevronDown, ChevronUp, BrainCircuit, Users, TrendingUp } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { Activity, AlertTriangle, CheckCircle, Clock, ChevronDown, ChevronUp, BrainCircuit, Users, TrendingUp, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MapContainer, TileLayer, Marker, Popup, CircleMarker } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
+import { synthesizeProjectReasoning } from '../lib/aiService';
+
+const PROJECT_NAMES = {
+  'Water & Drainage': 'Drainage & Waterlogging Overhaul',
+  'Road Infrastructure': 'Road Repair & Pothole Initiative',
+  'Electricity': 'Power Grid Reliability Upgrade',
+  'Sanitation': 'Sanitation & Waste Management Drive',
+  'Public Transport': 'Public Transport Infrastructure Fix',
+  'Healthcare': 'Primary Healthcare Access Expansion',
+  'Education': 'School Infrastructure Upgrade',
+  'General': 'General Constituency Improvement',
+};
+
+// Real ranking logic: group live complaints by category, weight by volume
+// and share of High-priority reports, and rank highest-demand first.
+function rankProjectsFromComplaints(complaints) {
+  const groups = {};
+  complaints.forEach((c) => {
+    const cat = c.category || 'General';
+    if (!groups[cat]) groups[cat] = [];
+    groups[cat].push(c);
+  });
+
+  const maxCount = Math.max(1, ...Object.values(groups).map((g) => g.length));
+
+  return Object.entries(groups)
+    .map(([category, items]) => {
+      const highCount = items.filter((c) => c.priority === 'High').length;
+      const volumeScore = (items.length / maxCount) * 70;
+      const urgencyScore = (highCount / items.length) * 30;
+      const confidenceScore = Math.round(Math.min(99, volumeScore + urgencyScore + 15));
+      return {
+        id: category,
+        name: PROJECT_NAMES[category] || `${category} Improvement Initiative`,
+        category,
+        confidenceScore,
+        complaints: items,
+      };
+    })
+    .sort((a, b) => b.confidenceScore - a.confidenceScore);
+}
 
 // Fix for default marker icon in leaflet
 import L from 'leaflet';
@@ -20,6 +60,33 @@ L.Marker.prototype.options.icon = DefaultIcon;
 
 export default function MPDashboard({ complaints }) {
   const [expandedProject, setExpandedProject] = useState(null);
+  const [reasoningMap, setReasoningMap] = useState({}); // { [category]: { status, text } }
+
+  const aiProjects = useMemo(() => rankProjectsFromComplaints(complaints), [complaints]);
+
+  const handleExpand = async (project) => {
+    const isOpen = expandedProject === project.id;
+    setExpandedProject(isOpen ? null : project.id);
+    if (isOpen) return;
+
+    // Already fetched (or fetching) reasoning for this category — don't re-call the API.
+    if (reasoningMap[project.category]) return;
+
+    setReasoningMap((prev) => ({ ...prev, [project.category]: { status: 'loading' } }));
+    try {
+      const { reasoning } = await synthesizeProjectReasoning(project.category, project.complaints);
+      setReasoningMap((prev) => ({ ...prev, [project.category]: { status: 'done', text: reasoning } }));
+    } catch (err) {
+      console.error('Reasoning generation failed:', err);
+      setReasoningMap((prev) => ({
+        ...prev,
+        [project.category]: {
+          status: 'error',
+          text: `${project.complaints.length} submissions in this category, including ${project.complaints.filter(c => c.priority === 'High').length} marked High priority. (AI synthesis unavailable — showing raw stats.)`,
+        },
+      }));
+    }
+  };
 
   const stats = [
     { label: 'Total Requests', value: '1,204', icon: Users, color: 'text-accent-cyan' },
@@ -174,7 +241,7 @@ export default function MPDashboard({ complaints }) {
                 <React.Fragment key={project.id}>
                   <tr 
                     className={`border-b border-white/5 hover:bg-white/[0.02] transition-colors cursor-pointer group ${expandedProject === project.id ? 'bg-white/[0.03]' : ''}`}
-                    onClick={() => setExpandedProject(expandedProject === project.id ? null : project.id)}
+                    onClick={() => handleExpand(project)}
                   >
                     <td className="py-5 pl-4">
                       <span className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
@@ -222,7 +289,18 @@ export default function MPDashboard({ complaints }) {
                               <BrainCircuit className="text-accent-purple shrink-0 mt-1" size={20} />
                               <div>
                                 <h4 className="text-sm font-semibold text-accent-purple mb-1">AI Synthesis</h4>
-                                <p className="text-slate-300 text-sm leading-relaxed">{project.reasoning}</p>
+                                {reasoningMap[project.category]?.status === 'loading' ? (
+                                  <p className="text-slate-400 text-sm leading-relaxed flex items-center gap-2">
+                                    <Loader2 size={14} className="animate-spin" /> Asking Gemini to synthesize {project.complaints.length} submissions...
+                                  </p>
+                                ) : (
+                                  <p className="text-slate-300 text-sm leading-relaxed">
+                                    {reasoningMap[project.category]?.text || 'Loading...'}
+                                  </p>
+                                )}
+                                <p className="text-xs text-slate-500 mt-2">
+                                  Based on {project.complaints.length} citizen submission{project.complaints.length !== 1 ? 's' : ''} in {project.category}.
+                                </p>
                                 <div className="mt-4 flex gap-3">
                                   <button className="px-4 py-2 rounded-lg bg-accent-purple/20 text-accent-purple hover:bg-accent-purple/30 text-xs font-bold transition-colors">
                                     Approve Project
