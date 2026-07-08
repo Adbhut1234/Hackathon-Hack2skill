@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Activity, AlertTriangle, CheckCircle, Clock, ChevronDown, ChevronUp, BrainCircuit, Users, TrendingUp, Loader2, Map as MapIcon, Layers } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MapContainer, TileLayer, Marker, Popup, CircleMarker, GeoJSON } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, CircleMarker, GeoJSON, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import { synthesizeProjectReasoning, generateThemes } from '../lib/aiService';
 import { constituencyWards, getInfraGapForLocation } from '../lib/mockDemographics';
@@ -71,6 +71,20 @@ let DefaultIcon = L.icon({
     iconAnchor: [12, 41]
 });
 L.Marker.prototype.options.icon = DefaultIcon;
+
+// Component to dynamically fit bounds to all complaints
+function MapBounds({ complaints }) {
+  const map = useMap();
+  
+  React.useEffect(() => {
+    if (complaints && complaints.length > 0) {
+      const bounds = L.latLngBounds(complaints.map(c => [c.lat, c.lng]));
+      map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
+    }
+  }, [complaints, map]);
+
+  return null;
+}
 
 export default function MPDashboard({ complaints }) {
   const [expandedProject, setExpandedProject] = useState(null);
@@ -205,6 +219,7 @@ export default function MPDashboard({ complaints }) {
               style={{ height: '100%', width: '100%', background: '#0f172a' }}
               zoomControl={false}
             >
+              <MapBounds complaints={complaints} />
               <TileLayer
                 url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
                 attribution='&copy; CARTO'
