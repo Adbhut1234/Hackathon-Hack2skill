@@ -1,9 +1,10 @@
 import React, { useState, useMemo } from 'react';
-import { Activity, AlertTriangle, CheckCircle, Clock, ChevronDown, ChevronUp, BrainCircuit, Users, TrendingUp, Loader2 } from 'lucide-react';
+import { Activity, AlertTriangle, CheckCircle, Clock, ChevronDown, ChevronUp, BrainCircuit, Users, TrendingUp, Loader2, Map as MapIcon, Layers } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MapContainer, TileLayer, Marker, Popup, CircleMarker } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, CircleMarker, GeoJSON } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
-import { synthesizeProjectReasoning } from '../lib/aiService';
+import { synthesizeProjectReasoning, generateThemes } from '../lib/aiService';
+import { constituencyWards } from '../lib/mockDemographics';
 
 const PROJECT_NAMES = {
   'Water & Drainage': 'Drainage & Waterlogging Overhaul',
@@ -16,8 +17,7 @@ const PROJECT_NAMES = {
   'General': 'General Constituency Improvement',
 };
 
-// Real ranking logic: group live complaints by category, weight by volume
-// and share of High-priority reports, and rank highest-demand first.
+// Baseline ranking logic (Fast, groups by category)
 function rankProjectsFromComplaints(complaints) {
   const groups = {};
   complaints.forEach((c) => {
@@ -60,16 +60,42 @@ L.Marker.prototype.options.icon = DefaultIcon;
 
 export default function MPDashboard({ complaints }) {
   const [expandedProject, setExpandedProject] = useState(null);
-  const [reasoningMap, setReasoningMap] = useState({}); // { [category]: { status, text } }
+  const [reasoningMap, setReasoningMap] = useState({}); 
+  
+  // New States for Phase 2
+  const [showDemographics, setShowDemographics] = useState(false);
+  const [isClustering, setIsClustering] = useState(false);
+  const [clusteredThemes, setClusteredThemes] = useState(null); // null means show baseline
 
-  const aiProjects = useMemo(() => rankProjectsFromComplaints(complaints), [complaints]);
+  const defaultProjects = useMemo(() => rankProjectsFromComplaints(complaints), [complaints]);
+  const activeProjects = clusteredThemes || defaultProjects;
+
+  const handleRunClustering = async () => {
+    setIsClustering(true);
+    try {
+      const themes = await generateThemes(complaints);
+      // Ensure it maps to our UI
+      const formattedThemes = themes.map(t => ({
+        ...t,
+        complaints: complaints.filter(c => t.complaintIds?.includes(String(c.id)) || t.complaintIds?.includes(Number(c.id))) 
+      }));
+      setClusteredThemes(formattedThemes);
+    } catch (err) {
+      console.error("Deep clustering failed:", err);
+      alert("AI Deep Clustering failed. Ensure Gemini API key is valid.");
+    }
+    setIsClustering(false);
+  };
 
   const handleExpand = async (project) => {
     const isOpen = expandedProject === project.id;
     setExpandedProject(isOpen ? null : project.id);
     if (isOpen) return;
 
-    // Already fetched (or fetching) reasoning for this category — don't re-call the API.
+    // If it's a deep cluster, reasoning is already provided in project.reasoning
+    if (clusteredThemes) return; 
+
+    // Already fetched
     if (reasoningMap[project.category]) return;
 
     setReasoningMap((prev) => ({ ...prev, [project.category]: { status: 'loading' } }));
@@ -82,10 +108,22 @@ export default function MPDashboard({ complaints }) {
         ...prev,
         [project.category]: {
           status: 'error',
-          text: `${project.complaints.length} submissions in this category, including ${project.complaints.filter(c => c.priority === 'High').length} marked High priority. (AI synthesis unavailable — showing raw stats.)`,
+          text: `AI synthesis unavailable — showing raw stats.`,
         },
       }));
     }
+  };
+
+  // GeoJSON styling based on gapScore
+  const geoJsonStyle = (feature) => {
+    const score = feature.properties.gapScore;
+    return {
+      fillColor: score > 80 ? '#ef4444' : score > 50 ? '#f59e0b' : '#10b981',
+      weight: 2,
+      opacity: 1,
+      color: 'white',
+      fillOpacity: 0.4
+    };
   };
 
   const stats = [
@@ -117,23 +155,49 @@ export default function MPDashboard({ complaints }) {
         
         {/* Map Section */}
         <div className="lg:col-span-2 glass-panel rounded-3xl overflow-hidden relative border border-white/10 flex flex-col h-full">
-          <div className="absolute top-4 left-4 z-[400] glass-panel px-4 py-2 rounded-lg flex items-center gap-2">
-            <MapPinPulse />
-            <span className="font-semibold text-white">Live Constituency Map</span>
+          <div className="absolute top-4 left-4 right-4 z-[400] flex justify-between items-center pointer-events-none">
+            <div className="glass-panel px-4 py-2 rounded-lg flex items-center gap-2 pointer-events-auto shadow-lg">
+              <MapPinPulse />
+              <span className="font-semibold text-white">Live Constituency Map</span>
+            </div>
+            <button 
+              onClick={() => setShowDemographics(!showDemographics)}
+              className={`glass-panel px-4 py-2 rounded-lg flex items-center gap-2 pointer-events-auto transition-colors shadow-lg ${showDemographics ? 'bg-accent-purple/20 border-accent-purple/50' : 'hover:bg-white/10'}`}
+            >
+              <Layers size={18} className={showDemographics ? 'text-accent-purple' : 'text-slate-300'} />
+              <span className="font-semibold text-white text-sm">Demographics Overlay</span>
+            </button>
           </div>
           
           <div className="flex-1 w-full h-full bg-slate-800/50">
             <MapContainer 
               center={[26.8504, 80.9499]} 
-              zoom={14} 
+              zoom={13} 
               style={{ height: '100%', width: '100%', background: '#0f172a' }}
               zoomControl={false}
             >
               <TileLayer
                 url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+                attribution='&copy; CARTO'
               />
               
+              {showDemographics && (
+                <GeoJSON 
+                  data={constituencyWards} 
+                  style={geoJsonStyle}
+                  onEachFeature={(feature, layer) => {
+                    layer.bindPopup(`
+                      <div class="p-1">
+                        <strong class="text-slate-800">${feature.properties.name}</strong>
+                        <p class="text-sm mt-1">Population: ${feature.properties.population}</p>
+                        <p class="text-sm">Infra Gap Score: <b>${feature.properties.gapScore}/100</b></p>
+                        <p class="text-xs text-slate-500 mt-1">${feature.properties.notes}</p>
+                      </div>
+                    `);
+                  }}
+                />
+              )}
+
               {complaints.map(complaint => (
                 <CircleMarker
                   key={complaint.id}
@@ -149,6 +213,7 @@ export default function MPDashboard({ complaints }) {
                     <div className="p-1">
                       <p className="font-bold text-slate-800">{complaint.category}</p>
                       <p className="text-sm text-slate-600 mt-1">{complaint.translation}</p>
+                      {complaint.photo && <img src={complaint.photo} alt="Issue" className="w-full h-16 object-cover mt-2 rounded" />}
                     </div>
                   </Popup>
                 </CircleMarker>
@@ -196,7 +261,7 @@ export default function MPDashboard({ complaints }) {
                       <img src={item.photo} alt="Attached issue" className="w-full h-full object-cover" />
                     </div>
                   )}
-                  
+
                   <div className="mt-3 flex items-center justify-between">
                     <span className={`text-xs font-bold ${
                       item.priority === 'High' ? 'text-red-400' : item.priority === 'Medium' ? 'text-amber-400' : 'text-blue-400'
@@ -222,13 +287,32 @@ export default function MPDashboard({ complaints }) {
               <BrainCircuit className="text-accent-cyan" size={28} />
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-white">AI Priority Engine</h2>
+              <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+                AI Priority Engine 
+                {clusteredThemes && <span className="text-[10px] uppercase bg-accent-purple/20 text-accent-purple px-2 py-1 rounded-md tracking-wider">Deep Cluster Mode</span>}
+              </h2>
               <p className="text-slate-400 text-sm">Top infrastructure proposals based on citizen data</p>
             </div>
           </div>
-          <button className="px-5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-sm font-semibold transition-colors">
-            Generate Full Report
-          </button>
+          <div className="flex gap-3">
+            {!clusteredThemes && (
+              <button 
+                onClick={handleRunClustering}
+                disabled={isClustering || complaints.length === 0}
+                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-accent-purple to-accent-cyan hover:opacity-90 border border-white/10 text-sm font-semibold transition-all shadow-[0_0_15px_rgba(191,0,255,0.2)] disabled:opacity-50 flex items-center gap-2"
+              >
+                {isClustering ? <><Loader2 size={16} className="animate-spin" /> Clustering...</> : "Run Deep Clustering"}
+              </button>
+            )}
+            {clusteredThemes && (
+              <button 
+                onClick={() => setClusteredThemes(null)}
+                className="px-5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-sm font-semibold transition-colors"
+              >
+                Reset
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="overflow-x-auto">
@@ -236,14 +320,14 @@ export default function MPDashboard({ complaints }) {
             <thead>
               <tr className="border-b border-white/10 text-slate-400 text-sm">
                 <th className="pb-4 pl-4 font-semibold">Rank</th>
-                <th className="pb-4 font-semibold">Project Name</th>
+                <th className="pb-4 font-semibold">{clusteredThemes ? 'AI Actionable Theme' : 'Project Name'}</th>
                 <th className="pb-4 font-semibold">Category</th>
                 <th className="pb-4 font-semibold text-center">AI Confidence</th>
                 <th className="pb-4 pr-4"></th>
               </tr>
             </thead>
             <tbody>
-              {aiProjects.map((project, index) => (
+              {activeProjects.map((project, index) => (
                 <React.Fragment key={project.id}>
                   <tr 
                     className={`border-b border-white/5 hover:bg-white/[0.02] transition-colors cursor-pointer group ${expandedProject === project.id ? 'bg-white/[0.03]' : ''}`}
@@ -256,7 +340,7 @@ export default function MPDashboard({ complaints }) {
                         #{index + 1}
                       </span>
                     </td>
-                    <td className="py-5 font-medium text-white">{project.name}</td>
+                    <td className="py-5 font-medium text-white max-w-xs truncate">{project.name}</td>
                     <td className="py-5">
                       <span className="px-3 py-1 text-xs rounded-full bg-white/10 text-slate-300">
                         {project.category}
@@ -295,7 +379,11 @@ export default function MPDashboard({ complaints }) {
                               <BrainCircuit className="text-accent-purple shrink-0 mt-1" size={20} />
                               <div>
                                 <h4 className="text-sm font-semibold text-accent-purple mb-1">AI Synthesis</h4>
-                                {reasoningMap[project.category]?.status === 'loading' ? (
+                                {clusteredThemes ? (
+                                  <p className="text-slate-300 text-sm leading-relaxed">
+                                    {project.reasoning}
+                                  </p>
+                                ) : reasoningMap[project.category]?.status === 'loading' ? (
                                   <p className="text-slate-400 text-sm leading-relaxed flex items-center gap-2">
                                     <Loader2 size={14} className="animate-spin" /> Asking Gemini to synthesize {project.complaints.length} submissions...
                                   </p>
@@ -305,7 +393,7 @@ export default function MPDashboard({ complaints }) {
                                   </p>
                                 )}
                                 <p className="text-xs text-slate-500 mt-2">
-                                  Based on {project.complaints.length} citizen submission{project.complaints.length !== 1 ? 's' : ''} in {project.category}.
+                                  Based on {project.complaints?.length || 0} citizen submission{project.complaints?.length !== 1 ? 's' : ''}.
                                 </p>
                                 <div className="mt-4 flex gap-3">
                                   <button className="px-4 py-2 rounded-lg bg-accent-purple/20 text-accent-purple hover:bg-accent-purple/30 text-xs font-bold transition-colors">

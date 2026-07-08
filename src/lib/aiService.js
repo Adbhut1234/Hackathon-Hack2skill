@@ -77,3 +77,35 @@ Respond with ONLY a raw JSON object (no markdown fences): {"reasoning": "..."}`;
 
   return callGemini(prompt);
 }
+
+/**
+ * Deep Clustering: Analyze a list of raw complaints and group them into specific actionable themes.
+ */
+export async function generateThemes(complaints) {
+  if (!complaints || complaints.length === 0) return [];
+  
+  const complaintList = complaints
+    .slice(0, 50) // limit to avoid massive context for hackathon demo
+    .map(c => `ID:${c.id} | Priority:${c.priority} | Text:${c.translation}`)
+    .join('\n');
+
+  const prompt = `You are an AI planning assistant for an Indian MP's office.
+Analyze the following list of citizen submissions and cluster them into 3 to 5 highly specific, actionable development themes (e.g., "Sector 4 Severe Waterlogging", "Main Road Streetlight Outages", "Primary School Roof Repairs").
+
+Do not just use generic categories. Find the actual recurring specific issues.
+
+Submissions:
+${complaintList}
+
+Respond with ONLY a raw JSON array of objects (no markdown fences) where each object has:
+{
+  "id": "unique-theme-id",
+  "name": "Specific Theme Name",
+  "category": "One of the broad categories (e.g. Water & Drainage, Electricity)",
+  "confidenceScore": "A number from 0 to 100 based on urgency and volume of the grouped submissions",
+  "complaintIds": ["array of complaint IDs that belong to this theme"],
+  "reasoning": "Short synthesis (max 30 words) of why this specific theme is a priority based on the matched submissions."
+}`;
+
+  return callGemini(prompt);
+}
