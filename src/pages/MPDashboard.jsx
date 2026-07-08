@@ -215,12 +215,23 @@ export default function MPDashboard({ complaints }) {
                   data={constituencyWards} 
                   style={geoJsonStyle}
                   onEachFeature={(feature, layer) => {
+                    const p = feature.properties;
                     layer.bindPopup(`
-                      <div class="p-1">
-                        <strong class="text-slate-800">${feature.properties.name}</strong>
-                        <p class="text-sm mt-1">Population: ${feature.properties.population}</p>
-                        <p class="text-sm">Infra Gap Score: <b>${feature.properties.gapScore}/100</b></p>
-                        <p class="text-xs text-slate-500 mt-1">${feature.properties.notes}</p>
+                      <div style="min-width:220px;font-family:Inter,sans-serif;">
+                        <strong style="font-size:13px;color:#1e293b;">${p.name}</strong>
+                        <p style="font-size:10px;color:#94a3b8;margin:2px 0 6px;">Wards: ${p.wardNumbers} • Census 2011</p>
+                        <table style="width:100%;font-size:11px;border-collapse:collapse;">
+                          <tr><td style="color:#64748b;padding:2px 0;">Population</td><td style="text-align:right;font-weight:600;color:#1e293b;">${p.population?.toLocaleString()}</td></tr>
+                          <tr><td style="color:#64748b;padding:2px 0;">Literacy Rate</td><td style="text-align:right;font-weight:600;color:#1e293b;">${p.literacyRate}%</td></tr>
+                          <tr><td style="color:#64748b;padding:2px 0;">Tap Water</td><td style="text-align:right;font-weight:600;color:${p.tapWaterCoverage < 50 ? '#ef4444' : p.tapWaterCoverage < 70 ? '#f59e0b' : '#10b981'};">${p.tapWaterCoverage}%</td></tr>
+                          <tr><td style="color:#64748b;padding:2px 0;">Paved Roads</td><td style="text-align:right;font-weight:600;color:${p.pavedRoadCoverage < 50 ? '#ef4444' : p.pavedRoadCoverage < 70 ? '#f59e0b' : '#10b981'};">${p.pavedRoadCoverage}%</td></tr>
+                          <tr><td style="color:#64748b;padding:2px 0;">Schools/10k</td><td style="text-align:right;font-weight:600;color:${p.schoolsPer10k < 3 ? '#ef4444' : '#1e293b'};">${p.schoolsPer10k}</td></tr>
+                          <tr><td style="color:#64748b;padding:2px 0;">Nearest PHC</td><td style="text-align:right;font-weight:600;color:${p.phcDistance_km > 3 ? '#ef4444' : '#1e293b'};">${p.phcDistance_km} km</td></tr>
+                        </table>
+                        <div style="margin-top:6px;padding:4px 8px;border-radius:6px;font-size:11px;font-weight:700;text-align:center;color:white;background:${p.gapScore > 80 ? '#ef4444' : p.gapScore > 50 ? '#f59e0b' : '#10b981'};">
+                          Infra Gap: ${p.gapScore}/100
+                        </div>
+                        <p style="font-size:9px;color:#94a3b8;margin-top:4px;">Source: ${p.dataSources}</p>
                       </div>
                     `);
                   }}
