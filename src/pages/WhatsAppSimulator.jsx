@@ -23,39 +23,59 @@ export default function WhatsAppSimulator({ onAddComplaint }) {
     scrollToBottom();
   }, [messages, isTyping]);
 
-  const handleSend = async (e) => {
-    e.preventDefault();
-    if (!input.trim()) return;
+  const sendMessage = async (text) => {
+    if (!text.trim()) return;
 
-    const userText = input.trim();
     const timeNow = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     
     // Add User Message
-    const userMsg = { id: Date.now(), text: userText, sender: "user", time: timeNow };
+    const userMsg = { id: Date.now(), text, sender: "user", time: timeNow };
     setMessages(prev => [...prev, userMsg]);
-    setInput('');
     setIsTyping(true);
 
     if (hasSubmitted) {
       // Just chat pleasantly if already submitted
       setTimeout(() => {
         setIsTyping(false);
-        setMessages(prev => [...prev, { id: Date.now()+1, text: "Thank you! We have already recorded your issue. If you have another issue, please start a new session.", sender: "bot", time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }]);
+        setMessages(prev => [...prev, { 
+          id: Date.now()+1, 
+          text: "Thank you! We have already recorded your issue. If you have another issue, please start a new session.", 
+          sender: "bot", 
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) 
+        }]);
       }, 1000);
       return;
     }
 
     try {
       // Analyze the complaint
-      const analysis = await analyzeComplaint(userText);
+      const analysis = await analyzeComplaint(text);
       
+      // Calculate coordinates centered in the appropriate zones to match their names!
+      // Hazratganj (CBD): ~ 26.840, 80.945
+      // Sector 4 (North Zone): ~ 26.855, 80.945
+      // Outskirts (South-East): ~ 26.835, 80.965
+      let lat = 26.8504 + (Math.random() - 0.5) * 0.005;
+      let lng = 80.9499 + (Math.random() - 0.5) * 0.005;
+      
+      if (text.toLowerCase().includes("sector 4") || text.toLowerCase().includes("north")) {
+        lat = 26.8560 + (Math.random() - 0.5) * 0.005;
+        lng = 80.9450 + (Math.random() - 0.5) * 0.005;
+      } else if (text.toLowerCase().includes("cbd") || text.toLowerCase().includes("hazratganj")) {
+        lat = 26.8400 + (Math.random() - 0.5) * 0.005;
+        lng = 80.9450 + (Math.random() - 0.5) * 0.005;
+      } else if (text.toLowerCase().includes("outskirts") || text.toLowerCase().includes("road broken")) {
+        lat = 26.8350 + (Math.random() - 0.5) * 0.005;
+        lng = 80.9650 + (Math.random() - 0.5) * 0.005;
+      }
+
       const newComplaint = {
         id: Date.now(),
-        lat: 26.8504 + (Math.random() - 0.5) * 0.01,
-        lng: 80.9499 + (Math.random() - 0.5) * 0.01,
+        lat,
+        lng,
         category: analysis.category,
         translation: analysis.translation,
-        originalText: userText,
+        originalText: text,
         language: analysis.language,
         priority: analysis.priority,
         priorityReason: analysis.priorityReason,
@@ -85,6 +105,13 @@ export default function WhatsAppSimulator({ onAddComplaint }) {
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) 
       }]);
     }
+  };
+
+  const handleSend = (e) => {
+    e.preventDefault();
+    if (!input.trim()) return;
+    sendMessage(input.trim());
+    setInput('');
   };
 
   return (
@@ -149,6 +176,30 @@ export default function WhatsAppSimulator({ onAddComplaint }) {
           </AnimatePresence>
           <div ref={messagesEndRef} />
         </div>
+
+        {/* Quick Suggestion Pills */}
+        {!hasSubmitted && !isTyping && (
+          <div className="flex gap-2 px-3 py-2 overflow-x-auto bg-slate-100 border-t border-slate-200 no-scrollbar shrink-0 shadow-inner">
+            <button 
+              onClick={() => sendMessage("Sector 4 ke primary school ki building toot rahi hai, please repair karwayein.")} 
+              className="text-xs px-3 py-1.5 bg-white text-[#008069] border border-[#008069]/30 rounded-full font-medium shadow-sm hover:bg-[#008069]/5 shrink-0 transition-colors"
+            >
+              🏫 Sector 4 School Repair
+            </button>
+            <button 
+              onClick={() => sendMessage("Frequent electricity power failures in Hazratganj CBD area.")} 
+              className="text-xs px-3 py-1.5 bg-white text-[#008069] border border-[#008069]/30 rounded-full font-medium shadow-sm hover:bg-[#008069]/5 shrink-0 transition-colors"
+            >
+              ⚡ CBD Power Cut
+            </button>
+            <button 
+              onClick={() => sendMessage("The outskirts connecting road is broken and has massive potholes.")} 
+              className="text-xs px-3 py-1.5 bg-white text-[#008069] border border-[#008069]/30 rounded-full font-medium shadow-sm hover:bg-[#008069]/5 shrink-0 transition-colors"
+            >
+              🚧 Outskirts Road Repair
+            </button>
+          </div>
+        )}
 
         {/* Input Area */}
         <div className="bg-[#f0f2f5] p-3 pb-6 md:pb-3 flex items-center gap-2">
