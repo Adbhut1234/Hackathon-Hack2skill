@@ -1,4 +1,4 @@
-# People's Priorities — AI for Constituency Development Planning
+# JanAwaz — People's Voice for Constituency Development
 
 Built for the Hack2skill hackathon.
 

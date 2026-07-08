@@ -165,10 +165,11 @@ export default function CitizenPortal({ onAddComplaint }) {
             Multilingual AI-Powered • Voice • Photo • Location
           </motion.div>
           <h1 className="text-4xl md:text-5xl font-extrabold text-white tracking-tight leading-tight">
-            Report a <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent-cyan via-blue-400 to-accent-purple">
-              Development Issue
+              JanAwaz
             </span>
+            <br />
+            <span className="text-2xl md:text-3xl font-bold text-slate-300">Report a Development Issue</span>
           </h1>
           <p className="text-slate-400 mt-3 text-sm max-w-sm mx-auto leading-relaxed">
             Describe an issue in your constituency in any language. Our AI will classify, translate, and route it to your MP's dashboard instantly.
