@@ -33,18 +33,47 @@ This means the ranking updates automatically as new submissions come in — subm
 - Leaflet / react-leaflet for the live constituency map
 - Framer Motion for UI transitions
 - **Google Gemini API** (`gemini-2.5-flash`) for language detection, translation, classification, and reasoning synthesis
+- **Appwrite** (Cloud or self-hosted) for Database, Storage (photo attachments), and Real-time WebSocket subscriptions
 
 ## Running Locally
 
-```bash
-npm install
-cp .env.example .env   # add your Gemini API key
-npm run dev
-```
+1. Install dependencies:
+   ```bash
+   npm install
+   ```
+2. Set up environment variables:
+   ```bash
+   cp .env.example .env
+   ```
+   Add your Google Gemini API key and Appwrite endpoints (see instructions below).
+3. Start the dev server:
+   ```bash
+   npm run dev
+   ```
 
-Get a free Gemini API key at https://aistudio.google.com/apikey.
+## Setting up Appwrite Backend
 
-> Note: the API key is called directly from the browser for this hackathon prototype. In a production deployment this would move behind a backend proxy so the key is never exposed client-side.
+The app has a built-in fallback. If Appwrite variables are not configured in `.env`, it will automatically boot in **Local Mode** using LocalStorage so the app doesn't crash. 
+
+To enable the live database, real-time sync, and file storage:
+1. Create a project in the [Appwrite Console](https://cloud.appwrite.io).
+2. Create a Database named `ConstituencyDB`.
+3. Create a Collection named `Complaints` with the following attributes:
+   - `lat` (Double, Required)
+   - `lng` (Double, Required)
+   - `category` (String, Size 50, Required)
+   - `translation` (String, Size 1000, Required)
+   - `originalText` (String, Size 1000, Required)
+   - `language` (String, Size 50, Required)
+   - `priority` (String, Size 20, Required)
+   - `priorityReason` (String, Size 500, Required)
+   - `date` (String, Size 100, Required)
+   - `status` (String, Size 50, Required)
+   - `source` (String, Size 50, Required)
+   - `photo` (String, Size 2000, Optional)
+4. Set the Collection permissions to **Any** (Create, Read) so that clients can make requests without authentication.
+5. Create a Storage Bucket named `complaint-photos` and set its update permissions to **Any** (Create, Read).
+6. Fill in the credentials in your `.env` file and restart Vite. You will see "Appwrite Live" appear in the navigation bar!
 
 ## What's Next
 

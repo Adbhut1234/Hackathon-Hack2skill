@@ -2,24 +2,104 @@ import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import CitizenPortal from './pages/CitizenPortal';
 import MPDashboard from './pages/MPDashboard';
 import WhatsAppSimulator from './pages/WhatsAppSimulator';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { initialComplaints } from './mockData';
-import { User, LayoutDashboard, MessageCircle } from 'lucide-react';
+import { User, LayoutDashboard, MessageCircle, Cloud, CloudOff } from 'lucide-react';
+import { isAppwriteConfigured, fetchComplaints, createComplaint, subscribeToComplaints } from './lib/appwrite';
 
 function App() {
-  const [complaints, setComplaints] = useState(() => {
-    const saved = localStorage.getItem('complaints');
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {
-        return initialComplaints;
+  const [complaints, setComplaints] = useState([]);
+  const [isAppwriteOnline, setIsAppwriteOnline] = useState(false);
+
+  // Initialize and Sync
+  useEffect(() => {
+    async function loadData() {
+      if (isAppwriteConfigured()) {
+        try {
+          const dbComplaints = await fetchComplaints();
+          if (dbComplaints && dbComplaints.length > 0) {
+            setComplaints(dbComplaints);
+          } else {
+            // Seed DB with initial items if empty
+            const seeds = [...initialComplaints];
+            for (const s of seeds) {
+              await createComplaint(s);
+            }
+            const populated = await fetchComplaints();
+            setComplaints(populated || initialComplaints);
+          }
+          setIsAppwriteOnline(true);
+        } catch (e) {
+          console.error("Failed to connect to Appwrite, falling back to LocalStorage:", e);
+          fallbackToLocalStorage();
+        }
+      } else {
+        fallbackToLocalStorage();
       }
     }
-    return initialComplaints;
-  });
 
-  const addComplaint = (newComplaint) => {
+    function fallbackToLocalStorage() {
+      setIsAppwriteOnline(false);
+      const saved = localStorage.getItem('complaints');
+      if (saved) {
+        try {
+          setComplaints(JSON.parse(saved));
+        } catch (e) {
+          setComplaints(initialComplaints);
+        }
+      } else {
+        setComplaints(initialComplaints);
+      }
+    }
+
+    loadData();
+
+    // Subscribe to real-time updates
+    let unsubscribe = null;
+    if (isAppwriteConfigured()) {
+      try {
+        unsubscribe = subscribeToComplaints((newDoc) => {
+          setComplaints(prev => {
+            if (prev.find(c => c.id === newDoc.id)) return prev; // avoid duplicates
+            return [newDoc, ...prev];
+          });
+        });
+      } catch (err) {
+        console.error("Failed to establish real-time socket:", err);
+      }
+    }
+
+    return () => {
+      if (unsubscribe) {
+        try {
+          unsubscribe();
+        } catch (err) {
+          // ignore
+        }
+      }
+    };
+  }, []);
+
+  const addComplaint = async (newComplaint) => {
+    if (isAppwriteOnline) {
+      try {
+        const doc = await createComplaint(newComplaint);
+        if (doc) {
+          setComplaints(prev => {
+            if (prev.find(c => c.id === doc.id)) return prev;
+            return [doc, ...prev];
+          });
+        }
+      } catch (err) {
+        console.error("Appwrite upload failed. Saving to local storage:", err);
+        fallbackAdd(newComplaint);
+      }
+    } else {
+      fallbackAdd(newComplaint);
+    }
+  };
+
+  const fallbackAdd = (newComplaint) => {
     const updated = [newComplaint, ...complaints];
     setComplaints(updated);
     localStorage.setItem('complaints', JSON.stringify(updated));
@@ -41,6 +121,15 @@ function App() {
           <Link to="/dashboard" className="flex items-center gap-2 px-3 py-1.5 rounded-full hover:bg-white/10 transition-colors text-sm font-medium">
             <LayoutDashboard size={16} className="text-accent-purple" /> Dashboard
           </Link>
+          
+          <div className="w-px h-6 bg-glass-border self-center"></div>
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 text-xs font-semibold text-slate-400">
+            {isAppwriteOnline ? (
+              <><Cloud size={14} className="text-emerald-400 animate-pulse" /> Appwrite Live</>
+            ) : (
+              <><CloudOff size={14} className="text-amber-400" /> Local Mode</>
+            )}
+          </div>
         </nav>
 
         <main className="flex-1 pt-20 overflow-x-hidden">
