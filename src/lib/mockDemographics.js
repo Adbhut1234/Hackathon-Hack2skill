@@ -3,17 +3,9 @@
 // Constituency Infrastructure & Demographic Dataset
 // 
 // DATA SOURCES:
-//   • Census of India 2011 — District Census Handbook, Lucknow (UP)
-//     https://censusindia.gov.in/2011census/dchb/0920_PART_B_DCHB_LUCKNOW.pdf
-//   • Primary Census Abstract (PCA) — Ward-level amenities data
-//   • Jal Jeevan Mission Dashboard — Tap water coverage (2023-24)
-//     https://ejalshakti.gov.in/jjmreport/
-//   • NITI Aayog — SDG India Index, District-level indicators
-//     https://sdgindiaindex.niti.gov.in/
-//   • Ministry of Education — UDISE+ School Directory (2022-23)
-//     https://udiseplus.gov.in/
-//   • National Health Mission — Health facility data (UP)
-//     https://nhm.gov.in/
+//   • Synthetic Mock Data — Generated for demonstration purposes
+//   • Represents approximate demographics for Lucknow zones
+//   • NOT based on actual verifiable census or government surveys.
 //
 // METHODOLOGY:
 //   Infrastructure Gap Score (0-100) is computed as:
@@ -43,8 +35,8 @@ export const constituencyWards = {
         schoolsPer10k: 4.2,
         phcDistance_km: 1.1,
         gapScore: 22,
-        notes: "Well-developed commercial core. Census 2011 shows 88.4% literacy, 82% tap water coverage. Low infrastructure gap — primary issues are traffic congestion and legacy drainage.",
-        dataSources: "Census 2011 PCA Ward 42-44, UDISE+ 2022-23"
+        notes: "Well-developed commercial core. Mock data indicates 88.4% literacy, 82% tap water coverage. Low infrastructure gap — primary issues are traffic congestion and legacy drainage.",
+        dataSources: "Synthetic Demonstration Data"
       },
       geometry: {
         type: "Polygon",
@@ -68,8 +60,8 @@ export const constituencyWards = {
         schoolsPer10k: 3.1,
         phcDistance_km: 2.4,
         gapScore: 68,
-        notes: "Dense old-city settlement. Census 2011 shows only 58% tap water and 62% paved roads. High population density (>35,000/km²) strains existing infrastructure. Schools deficit of ~1.1 per 10k vs. city average.",
-        dataSources: "Census 2011 PCA Ward 35-38, Jal Jeevan Mission 2023"
+        notes: "Dense old-city settlement. Mock data shows only 58% tap water and 62% paved roads. High population density (>35,000/km²) strains existing infrastructure. Schools deficit of ~1.1 per 10k vs. city average.",
+        dataSources: "Synthetic Demonstration Data"
       },
       geometry: {
         type: "Polygon",
@@ -93,8 +85,8 @@ export const constituencyWards = {
         schoolsPer10k: 3.8,
         phcDistance_km: 2.8,
         gapScore: 52,
-        notes: "Large residential zone. Census 2011 data shows 71% tap water, 68% paved roads. Rapidly growing — 22% population increase since 2001. PHC distance (2.8 km) exceeds NRHM target of 1.5 km.",
-        dataSources: "Census 2011 PCA Ward 1-5, NHM Facility Database 2023"
+        notes: "Large residential zone. Mock data shows 71% tap water, 68% paved roads. Rapidly growing. PHC distance (2.8 km) exceeds general targets of 1.5 km.",
+        dataSources: "Synthetic Demonstration Data"
       },
       geometry: {
         type: "Polygon",
@@ -118,8 +110,8 @@ export const constituencyWards = {
         schoolsPer10k: 2.3,
         phcDistance_km: 4.6,
         gapScore: 88,
-        notes: "Rapidly urbanizing peri-urban area. Census 2011: only 34% tap water, 41% paved roads. Critical education gap — 2.3 schools per 10k vs. national urban avg of 4.0. Nearest PHC 4.6 km away, well above NHM 1.5 km norm.",
-        dataSources: "Census 2011 DCHB Part-A, UDISE+ 2022-23, Jal Jeevan Mission"
+        notes: "Rapidly urbanizing peri-urban area. Mock data: only 34% tap water, 41% paved roads. Critical education gap — 2.3 schools per 10k vs. national urban avg of 4.0. Nearest PHC 4.6 km away, well above 1.5 km norm.",
+        dataSources: "Synthetic Demonstration Data"
       },
       geometry: {
         type: "Polygon",
@@ -143,8 +135,8 @@ export const constituencyWards = {
         schoolsPer10k: 5.1,
         phcDistance_km: 0.8,
         gapScore: 15,
-        notes: "Modern planned township, best infrastructure in city. Census 2011: 91.2% literacy, 89% tap water, 94% paved roads. Well above NITI Aayog SDG benchmarks for urban areas.",
-        dataSources: "Census 2011 PCA Ward 70-74, SDG India Index"
+        notes: "Modern planned township, best infrastructure in city. Mock data: 91.2% literacy, 89% tap water, 94% paved roads. Well above general benchmarks for urban areas.",
+        dataSources: "Synthetic Demonstration Data"
       },
       geometry: {
         type: "Polygon",
@@ -168,8 +160,8 @@ export const constituencyWards = {
         schoolsPer10k: 2.9,
         phcDistance_km: 3.1,
         gapScore: 64,
-        notes: "Industrial-residential mixed zone. Census 2011: 62% tap water, 59% paved roads. Sanitation coverage below 60%. Schools per 10k (2.9) below city average (3.8). Factory pollution increases health burden.",
-        dataSources: "Census 2011 PCA Ward 55-59, UP Pollution Control Board"
+        notes: "Industrial-residential mixed zone. Mock data: 62% tap water, 59% paved roads. Sanitation coverage below 60%. Schools per 10k (2.9) below city average (3.8). Factory pollution increases health burden.",
+        dataSources: "Synthetic Demonstration Data"
       },
       geometry: {
         type: "Polygon",
@@ -193,8 +185,8 @@ export const constituencyWards = {
         schoolsPer10k: 1.9,
         phcDistance_km: 5.2,
         gapScore: 93,
-        notes: "CRITICAL GAP: Fringe area with worst infrastructure in constituency. Census 2011: 28% tap water (vs city avg 67%), 35% paved roads. Only 1.9 schools per 10k — half the national urban average. Nearest health facility 5.2 km away.",
-        dataSources: "Census 2011 DCHB Part-A/B, Jal Jeevan Mission, NHM"
+        notes: "CRITICAL GAP: Fringe area with worst infrastructure in constituency. Mock data: 28% tap water (vs city avg 67%), 35% paved roads. Only 1.9 schools per 10k. Nearest health facility 5.2 km away.",
+        dataSources: "Synthetic Demonstration Data"
       },
       geometry: {
         type: "Polygon",
@@ -218,8 +210,8 @@ export const constituencyWards = {
         schoolsPer10k: 3.4,
         phcDistance_km: 1.9,
         gapScore: 45,
-        notes: "Major transport hub (railway station zone). Census 2011: 65% tap water, 72% paved roads. Infrastructure adequate but strained by floating population. Sanitation near station area is a persistent concern.",
-        dataSources: "Census 2011 PCA Ward 80-83, Indian Railways"
+        notes: "Major transport hub (railway station zone). Mock data: 65% tap water, 72% paved roads. Infrastructure adequate but strained by floating population. Sanitation near station area is a persistent concern.",
+        dataSources: "Synthetic Demonstration Data"
       },
       geometry: {
         type: "Polygon",
@@ -269,6 +261,6 @@ export function getInfraGapForLocation(lat, lng) {
     tapWater: null,
     literacy: null,
     schools: null,
-    notes: "Outside mapped Census ward boundaries. District average gap score applied." 
+    notes: "Outside mapped synthetic ward boundaries. District average gap score applied." 
   };
 }

@@ -15,6 +15,8 @@ A multilingual platform where citizens submit development suggestions in plain l
 - **MP Dashboard** — A live map of where requests are coming from, a real-time feed of incoming submissions, and an **AI Priority Engine** that ranks categories by actual demand (submission volume + share of high-priority reports) — not a fixed list.
 - **AI Synthesis** — Click into any ranked item and Gemini generates a short, specific explanation of why that category deserves priority, grounded in the actual submissions received.
 
+> **Note:** The demographic statistics and infrastructure gap data currently shown in the MP Dashboard map are synthetic mock data generated for demonstration purposes only. They are not based on actual verifiable census or government surveys.
+
 ## How the Ranking Works
 
 Instead of a hardcoded priority list, the dashboard groups all live citizen submissions by category and scores each one:
