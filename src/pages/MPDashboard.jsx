@@ -78,8 +78,20 @@ function MapBounds({ complaints }) {
   
   React.useEffect(() => {
     if (complaints && complaints.length > 0) {
-      const bounds = L.latLngBounds(complaints.map(c => [c.lat, c.lng]));
-      map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
+      try {
+        const validCoords = complaints
+          .filter(c => c && typeof c.lat === 'number' && !isNaN(c.lat) && typeof c.lng === 'number' && !isNaN(c.lng))
+          .map(c => [c.lat, c.lng]);
+          
+        if (validCoords.length > 0) {
+          const bounds = L.latLngBounds(validCoords);
+          if (bounds.isValid()) {
+            map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
+          }
+        }
+      } catch (err) {
+        console.error("Error calculating map bounds:", err);
+      }
     }
   }, [complaints, map]);
 
@@ -253,7 +265,9 @@ export default function MPDashboard({ complaints }) {
                 />
               )}
 
-              {complaints.map(complaint => (
+              {complaints
+                .filter(c => c && typeof c.lat === 'number' && !isNaN(c.lat) && typeof c.lng === 'number' && !isNaN(c.lng))
+                .map(complaint => (
                 <CircleMarker
                   key={complaint.id}
                   center={[complaint.lat, complaint.lng]}
