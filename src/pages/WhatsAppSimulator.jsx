@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Send, Phone, Video, MoreVertical, ChevronLeft, Check, CheckCheck } from 'lucide-react';
+import { Send, Phone, Video, MoreVertical, ChevronLeft, Check, CheckCheck, Paperclip, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { analyzeComplaint } from '../lib/aiService';
 
@@ -10,6 +10,8 @@ export default function WhatsAppSimulator({ onAddComplaint }) {
   ]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [photoPreview, setPhotoPreview] = useState(null);
+  const fileInputRef = useRef(null);
   const messagesEndRef = useRef(null);
   
   // Track if we have already submitted an issue in this session
@@ -23,13 +25,27 @@ export default function WhatsAppSimulator({ onAddComplaint }) {
     scrollToBottom();
   }, [messages, isTyping]);
 
-  const sendMessage = async (text) => {
-    if (!text.trim()) return;
+  const handlePhotoClick = () => fileInputRef.current?.click();
+  const handlePhotoChange = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => setPhotoPreview(reader.result);
+      reader.readAsDataURL(file);
+    }
+  };
+  const removePhoto = () => {
+    setPhotoPreview(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const sendMessage = async (text, photo = null) => {
+    if (!text.trim() && !photo) return;
 
     const timeNow = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     
     // Add User Message
-    const userMsg = { id: Date.now(), text, sender: "user", time: timeNow };
+    const userMsg = { id: Date.now(), text, photo, sender: "user", time: timeNow };
     setMessages(prev => [...prev, userMsg]);
     setIsTyping(true);
 
@@ -66,7 +82,7 @@ export default function WhatsAppSimulator({ onAddComplaint }) {
 
     try {
       // Analyze the complaint
-      const analysis = await analyzeComplaint(text);
+      const analysis = await analyzeComplaint(text + (photo ? " [Image Attached]" : ""));
       
       // Calculate coordinates centered in the appropriate zones to match their names!
       // Hazratganj (CBD): ~ 26.840, 80.945
@@ -98,7 +114,8 @@ export default function WhatsAppSimulator({ onAddComplaint }) {
         priorityReason: analysis.priorityReason,
         date: new Date().toISOString(),
         status: 'Pending',
-        source: 'WhatsApp'
+        source: 'WhatsApp',
+        photo: photo
       };
 
       onAddComplaint(newComplaint);
@@ -126,9 +143,10 @@ export default function WhatsAppSimulator({ onAddComplaint }) {
 
   const handleSend = (e) => {
     e.preventDefault();
-    if (!input.trim()) return;
-    sendMessage(input.trim());
+    if (!input.trim() && !photoPreview) return;
+    sendMessage(input.trim(), photoPreview);
     setInput('');
+    removePhoto();
   };
 
   return (
@@ -170,6 +188,7 @@ export default function WhatsAppSimulator({ onAddComplaint }) {
                 className={`flex flex-col max-w-[80%] ${msg.sender === 'user' ? 'self-end' : 'self-start'}`}
               >
                 <div className={`p-2 px-3 rounded-xl shadow-sm text-[15px] leading-snug whitespace-pre-wrap ${msg.sender === 'user' ? 'bg-[#d9fdd3] rounded-tr-none text-slate-800' : 'bg-white rounded-tl-none text-slate-800'}`}>
+                  {msg.photo && <img src={msg.photo} alt="Attached" className="w-full max-w-[200px] rounded-lg mb-2 object-cover" />}
                   {msg.text}
                   <div className="flex justify-end items-center gap-1 mt-1">
                     <span className="text-[10px] text-slate-400">{msg.time}</span>
@@ -218,8 +237,46 @@ export default function WhatsAppSimulator({ onAddComplaint }) {
           </div>
         )}
 
+        {/* Photo Preview Thumbnail */}
+        <AnimatePresence>
+          {photoPreview && (
+            <motion.div 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 10 }}
+              className="absolute bottom-20 left-4 bg-white p-2 rounded-xl shadow-lg border border-slate-200 z-20"
+            >
+              <div className="relative w-20 h-20">
+                <img src={photoPreview} alt="Preview" className="w-full h-full object-cover rounded-lg" />
+                <button 
+                  onClick={removePhoto}
+                  className="absolute -top-2 -right-2 bg-slate-800 text-white p-1 rounded-full hover:bg-slate-700 shadow-sm"
+                >
+                  <X size={12} />
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* Input Area */}
         <div className="bg-[#f0f2f5] p-3 pb-6 md:pb-3 flex items-center gap-2">
+          <input 
+            type="file" 
+            accept="image/*" 
+            ref={fileInputRef} 
+            onChange={handlePhotoChange} 
+            className="hidden" 
+          />
+          <button 
+            type="button"
+            onClick={handlePhotoClick}
+            disabled={isTyping}
+            className="w-10 h-10 rounded-full flex items-center justify-center text-slate-500 hover:bg-black/5 disabled:opacity-50 transition-colors shrink-0"
+          >
+            <Paperclip size={22} className="rotate-45" />
+          </button>
+          
           <form onSubmit={handleSend} className="flex-1 flex gap-2">
             <div className="flex-1 bg-white rounded-full flex items-center px-4 py-2 shadow-sm">
               <input 
@@ -233,8 +290,8 @@ export default function WhatsAppSimulator({ onAddComplaint }) {
             </div>
             <button 
               type="submit" 
-              disabled={isTyping || !input.trim()}
-              className="w-10 h-10 rounded-full bg-[#00a884] flex items-center justify-center text-white shadow-sm disabled:opacity-50 transition-opacity"
+              disabled={isTyping || (!input.trim() && !photoPreview)}
+              className="w-10 h-10 rounded-full bg-[#00a884] flex items-center justify-center text-white shadow-sm disabled:opacity-50 transition-opacity shrink-0"
             >
               <Send size={18} className="ml-1" />
             </button>

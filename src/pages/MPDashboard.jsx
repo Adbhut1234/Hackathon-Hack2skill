@@ -180,10 +180,10 @@ export default function MPDashboard({ complaints }) {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[800px] lg:h-[600px]">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-auto lg:h-[600px]">
         
         {/* Map Section */}
-        <div className="lg:col-span-2 glass-panel rounded-3xl overflow-hidden relative border border-white/10 flex flex-col h-full">
+        <div className="lg:col-span-2 glass-panel rounded-3xl overflow-hidden relative border border-white/10 flex flex-col h-[500px] lg:h-full">
           <div className="absolute top-4 left-4 right-4 z-[400] flex justify-between items-center pointer-events-none">
             <div className="glass-panel px-4 py-2 rounded-lg flex items-center gap-2 pointer-events-auto shadow-lg">
               <MapPinPulse />
@@ -263,7 +263,7 @@ export default function MPDashboard({ complaints }) {
         </div>
 
         {/* Live Feed Section */}
-        <div className="glass-panel rounded-3xl p-6 flex flex-col h-full border border-white/10">
+        <div className="glass-panel rounded-3xl p-6 flex flex-col h-[500px] lg:h-full border border-white/10">
           <div className="flex items-center gap-3 mb-6">
             <Activity className="text-accent-purple" size={24} />
             <h2 className="text-xl font-bold text-white">Live Request Feed</h2>
