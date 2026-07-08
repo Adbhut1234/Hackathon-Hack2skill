@@ -79,7 +79,7 @@ export default function CitizenPortal({ onAddComplaint }) {
 
   const handleLocationClick = () => {
     if (!navigator.geolocation) {
-      alert("Geolocation is not supported by your browser.");
+      console.warn("Geolocation is not supported by this browser.");
       return;
     }
 
@@ -93,15 +93,15 @@ export default function CitizenPortal({ onAddComplaint }) {
         setIsGettingLocation(false);
       },
       (error) => {
-        console.error("Geolocation error", error);
-        alert("Unable to retrieve your location. Falling back to default constituency location.");
+        console.warn("Geolocation failed or timed out. Falling back to constituency default coordinates.", error);
+        // Soft fallback: auto-assign coordinates in our constituency map
         setLocation({
           lat: 26.8504 + (Math.random() - 0.5) * 0.01,
           lng: 80.9499 + (Math.random() - 0.5) * 0.01
         });
         setIsGettingLocation(false);
       },
-      { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+      { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 }
     );
   };
 
