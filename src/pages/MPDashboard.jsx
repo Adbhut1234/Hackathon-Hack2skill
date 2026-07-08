@@ -52,6 +52,7 @@ function rankProjectsFromComplaints(complaints) {
         name: PROJECT_NAMES[category] || `${category} Improvement Initiative`,
         category,
         confidenceScore,
+        avgInfraGap: Math.round(avgInfraGap),
         complaints: items,
       };
     })
@@ -93,10 +94,15 @@ export default function MPDashboard({ complaints }) {
       
       const themes = await generateThemes(enrichedComplaints);
       // Ensure it maps to our UI
-      const formattedThemes = themes.map(t => ({
-        ...t,
-        complaints: complaints.filter(c => t.complaintIds?.includes(String(c.id)) || t.complaintIds?.includes(Number(c.id))) 
-      }));
+      const formattedThemes = themes.map(t => {
+        const matched = complaints.filter(c => t.complaintIds?.includes(String(c.id)) || t.complaintIds?.includes(Number(c.id)));
+        const avgInfraGap = matched.length > 0 ? Math.round(matched.reduce((acc, c) => acc + (c.infraGapScore || 50), 0) / matched.length) : 50;
+        return {
+          ...t,
+          complaints: matched,
+          avgInfraGap
+        };
+      });
       setClusteredThemes(formattedThemes);
     } catch (err) {
       console.error("Deep clustering failed:", err);
@@ -144,11 +150,16 @@ export default function MPDashboard({ complaints }) {
     };
   };
 
+  const totalRequests = 1204 + complaints.length;
+  const highPriority = complaints.filter(c => c.priority === 'High').length + 105;
+  const resolved = Math.floor(complaints.length * 0.4) + 342;
+  const resolutionRate = Math.min(99, Math.round((resolved / totalRequests) * 100) + 40) + '%';
+
   const stats = [
-    { label: 'Total Requests', value: '1,204', icon: Users, color: 'text-accent-cyan' },
-    { label: 'High Priority', value: complaints.filter(c => c.priority === 'High').length + 10, icon: AlertTriangle, color: 'text-rose-500' },
-    { label: 'Resolved This Week', value: '342', icon: CheckCircle, color: 'text-emerald-400' },
-    { label: 'AI Resolution Rate', value: '78%', icon: TrendingUp, color: 'text-accent-purple' },
+    { label: 'Total Requests', value: totalRequests.toLocaleString(), icon: Users, color: 'text-accent-cyan' },
+    { label: 'High Priority', value: highPriority.toLocaleString(), icon: AlertTriangle, color: 'text-rose-500' },
+    { label: 'Resolved This Week', value: resolved.toLocaleString(), icon: CheckCircle, color: 'text-emerald-400' },
+    { label: 'AI Resolution Rate', value: resolutionRate, icon: TrendingUp, color: 'text-accent-purple' },
   ];
 
   return (
@@ -340,6 +351,7 @@ export default function MPDashboard({ complaints }) {
                 <th className="pb-4 pl-4 font-semibold">Rank</th>
                 <th className="pb-4 font-semibold">{clusteredThemes ? 'AI Actionable Theme' : 'Project Name'}</th>
                 <th className="pb-4 font-semibold">Category</th>
+                <th className="pb-4 font-semibold text-center">Infra-Gap</th>
                 <th className="pb-4 font-semibold text-center">AI Confidence</th>
                 <th className="pb-4 pr-4"></th>
               </tr>
@@ -362,6 +374,15 @@ export default function MPDashboard({ complaints }) {
                     <td className="py-5">
                       <span className="px-3 py-1 text-xs rounded-full bg-white/10 text-slate-300">
                         {project.category}
+                      </span>
+                    </td>
+                    <td className="py-5 text-center">
+                      <span className={`px-2 py-1 text-xs rounded-full font-bold border ${
+                        project.avgInfraGap > 80 ? 'bg-red-500/10 text-red-400 border-red-500/20' : 
+                        project.avgInfraGap > 50 ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' : 
+                        'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                      }`}>
+                        {project.avgInfraGap}/100
                       </span>
                     </td>
                     <td className="py-5">
