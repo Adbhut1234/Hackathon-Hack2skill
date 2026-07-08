@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, NavLink } from 'react-router-dom';
 import CitizenPortal from './pages/CitizenPortal';
 import MPDashboard from './pages/MPDashboard';
 import WhatsAppSimulator from './pages/WhatsAppSimulator';
@@ -11,7 +11,6 @@ function App() {
   const [complaints, setComplaints] = useState([]);
   const [isAppwriteOnline, setIsAppwriteOnline] = useState(false);
 
-  // Initialize and Sync
   useEffect(() => {
     async function loadData() {
       if (isAppwriteConfigured()) {
@@ -20,7 +19,6 @@ function App() {
           if (dbComplaints && dbComplaints.length > 0) {
             setComplaints(dbComplaints);
           } else {
-            // Seed DB with initial items if empty
             const seeds = [...initialComplaints];
             for (const s of seeds) {
               await createComplaint(s);
@@ -54,13 +52,12 @@ function App() {
 
     loadData();
 
-    // Subscribe to real-time updates
     let unsubscribe = null;
     if (isAppwriteConfigured()) {
       try {
         unsubscribe = subscribeToComplaints((newDoc) => {
           setComplaints(prev => {
-            if (prev.find(c => c.id === newDoc.id)) return prev; // avoid duplicates
+            if (prev.find(c => c.id === newDoc.id)) return prev;
             return [newDoc, ...prev];
           });
         });
@@ -71,11 +68,7 @@ function App() {
 
     return () => {
       if (unsubscribe) {
-        try {
-          unsubscribe();
-        } catch (err) {
-          // ignore
-        }
+        try { unsubscribe(); } catch (err) { /* ignore */ }
       }
     };
   }, []);
@@ -105,29 +98,38 @@ function App() {
     localStorage.setItem('complaints', JSON.stringify(updated));
   };
 
+  const navLinkClass = ({ isActive }) =>
+    `flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition-all duration-200 ${
+      isActive 
+        ? 'bg-white/10 text-white shadow-inner' 
+        : 'text-slate-400 hover:text-white hover:bg-white/5'
+    }`;
+
   return (
     <Router>
-      <div className="min-h-screen bg-dark-bg text-slate-100 flex flex-col font-sans">
-        {/* Simple navigation toggle for demo purposes */}
-        <nav className="fixed top-4 left-1/2 -translate-x-1/2 z-50 glass-panel rounded-full px-4 py-2 flex gap-4 backdrop-blur-md shadow-2xl">
-          <Link to="/citizen" className="flex items-center gap-2 px-3 py-1.5 rounded-full hover:bg-white/10 transition-colors text-sm font-medium">
-            <User size={16} className="text-accent-cyan" /> Portal
-          </Link>
-          <div className="w-px h-6 bg-glass-border self-center"></div>
-          <Link to="/whatsapp" className="flex items-center gap-2 px-3 py-1.5 rounded-full hover:bg-white/10 transition-colors text-sm font-medium">
-            <MessageCircle size={16} className="text-green-400" /> WhatsApp
-          </Link>
-          <div className="w-px h-6 bg-glass-border self-center"></div>
-          <Link to="/dashboard" className="flex items-center gap-2 px-3 py-1.5 rounded-full hover:bg-white/10 transition-colors text-sm font-medium">
-            <LayoutDashboard size={16} className="text-accent-purple" /> Dashboard
-          </Link>
+      <div className="min-h-screen bg-dark-bg text-slate-100 flex flex-col">
+        {/* Premium Glass Navigation */}
+        <nav className="fixed top-4 left-1/2 -translate-x-1/2 z-50 glass-panel rounded-2xl px-2 py-1.5 flex items-center gap-1 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
+          <NavLink to="/citizen" className={navLinkClass}>
+            <User size={15} className="text-accent-cyan" /> Portal
+          </NavLink>
+          <NavLink to="/whatsapp" className={navLinkClass}>
+            <MessageCircle size={15} className="text-green-400" /> WhatsApp
+          </NavLink>
+          <NavLink to="/dashboard" className={navLinkClass}>
+            <LayoutDashboard size={15} className="text-accent-purple" /> Dashboard
+          </NavLink>
           
-          <div className="w-px h-6 bg-glass-border self-center"></div>
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 text-xs font-semibold text-slate-400">
+          <div className="w-px h-5 bg-white/10 mx-1"></div>
+          <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold tracking-wider uppercase ${
+            isAppwriteOnline 
+              ? 'text-emerald-400 bg-emerald-400/10 border border-emerald-400/20' 
+              : 'text-amber-400 bg-amber-400/10 border border-amber-400/20'
+          }`}>
             {isAppwriteOnline ? (
-              <><Cloud size={14} className="text-emerald-400 animate-pulse" /> Appwrite Live</>
+              <><Cloud size={12} className="animate-pulse" /> Live</>
             ) : (
-              <><CloudOff size={14} className="text-amber-400" /> Local Mode</>
+              <><CloudOff size={12} /> Local</>
             )}
           </div>
         </nav>
