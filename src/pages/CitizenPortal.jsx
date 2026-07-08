@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Mic, Camera, MapPin, Send, CheckCircle, AlertCircle } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { Mic, Camera, MapPin, Send, CheckCircle, AlertCircle, X, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { analyzeComplaint } from '../lib/aiService';
 
@@ -9,10 +9,75 @@ export default function CitizenPortal({ onAddComplaint }) {
   const [isSuccess, setIsSuccess] = useState(false);
   const [error, setError] = useState(null);
   const [detectedLanguage, setDetectedLanguage] = useState(null);
+  
+  // New states for voice and photo
+  const [isListening, setIsListening] = useState(false);
+  const [photoPreview, setPhotoPreview] = useState(null);
+  const fileInputRef = useRef(null);
+
+  const handleVoiceClick = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert("Your browser does not support voice input. Please try Chrome or Edge.");
+      return;
+    }
+
+    if (isListening) {
+      setIsListening(false);
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    // We can leave lang unset so it defaults to the browser's language, 
+    // or set it if we know the user's preference.
+
+    recognition.onstart = () => {
+      setIsListening(true);
+    };
+
+    recognition.onresult = (event) => {
+      const transcript = event.results[0][0].transcript;
+      setDescription((prev) => prev ? prev + ' ' + transcript : transcript);
+      setIsListening(false);
+    };
+
+    recognition.onerror = (event) => {
+      console.error("Speech recognition error", event.error);
+      setIsListening(false);
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+    };
+
+    recognition.start();
+  };
+
+  const handlePhotoClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handlePhotoChange = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPhotoPreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const removePhoto = () => {
+    setPhotoPreview(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!description.trim()) return;
+    if (!description.trim() && !photoPreview) return;
 
     setIsSubmitting(true);
     setError(null);
@@ -21,7 +86,7 @@ export default function CitizenPortal({ onAddComplaint }) {
     try {
       // Real AI call: Gemini detects language, translates, classifies
       // category + priority for this submission.
-      analysis = await analyzeComplaint(description);
+      analysis = await analyzeComplaint(description + (photoPreview ? " [Image Attached]" : ""));
     } catch (err) {
       console.error('AI analysis failed, falling back to defaults:', err);
       setError('AI analysis unavailable right now — submitted with default tagging.');
@@ -46,6 +111,7 @@ export default function CitizenPortal({ onAddComplaint }) {
       priorityReason: analysis.priorityReason,
       date: new Date().toISOString(),
       status: 'Pending',
+      photo: photoPreview // include photo in submission
     };
 
     onAddComplaint(newComplaint);
@@ -56,6 +122,8 @@ export default function CitizenPortal({ onAddComplaint }) {
     setTimeout(() => {
       setIsSuccess(false);
       setDescription('');
+      setPhotoPreview(null);
+      if (fileInputRef.current) fileInputRef.current.value = '';
       setDetectedLanguage(null);
     }, 3500);
   };
@@ -109,7 +177,7 @@ export default function CitizenPortal({ onAddComplaint }) {
               onSubmit={handleSubmit} 
               className="flex flex-col gap-6 relative z-10"
             >
-              <div className="relative">
+              <div className="relative flex flex-col gap-3">
                 <textarea
                   className="w-full h-40 bg-white/5 border border-white/10 rounded-2xl p-4 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-accent-cyan/50 focus:border-transparent transition-all resize-none"
                   placeholder="Describe the issue in your area... (any language works)"
@@ -117,6 +185,28 @@ export default function CitizenPortal({ onAddComplaint }) {
                   onChange={(e) => setDescription(e.target.value)}
                   disabled={isSubmitting}
                 />
+                
+                {/* Photo Preview Thumbnail */}
+                {photoPreview && (
+                  <div className="relative w-24 h-24 rounded-lg overflow-hidden border border-white/20 group shadow-lg">
+                    <img src={photoPreview} alt="Attached" className="w-full h-full object-cover" />
+                    <button 
+                      type="button" 
+                      onClick={removePhoto}
+                      className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"
+                    >
+                      <X size={24} className="text-white" />
+                    </button>
+                  </div>
+                )}
+                
+                {/* Listening Indicator */}
+                {isListening && (
+                  <div className="absolute top-4 right-4 flex items-center gap-2 text-accent-purple">
+                    <Loader2 size={16} className="animate-spin" />
+                    <span className="text-xs font-medium animate-pulse">Listening...</span>
+                  </div>
+                )}
               </div>
 
               {error && (
@@ -125,11 +215,28 @@ export default function CitizenPortal({ onAddComplaint }) {
                 </div>
               )}
 
+              {/* Hidden file input */}
+              <input 
+                type="file" 
+                accept="image/*" 
+                ref={fileInputRef} 
+                onChange={handlePhotoChange} 
+                className="hidden" 
+              />
+
               <div className="flex justify-between gap-4">
-                <button type="button" className="flex-1 flex justify-center items-center py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-colors text-slate-300 hover:text-accent-cyan group">
-                  <Mic size={22} className="group-hover:scale-110 transition-transform" />
+                <button 
+                  type="button" 
+                  onClick={handleVoiceClick}
+                  className={`flex-1 flex justify-center items-center py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-colors ${isListening ? 'text-accent-purple bg-accent-purple/10 border-accent-purple/30 shadow-[0_0_15px_rgba(191,0,255,0.2)]' : 'text-slate-300 hover:text-accent-cyan'} group`}
+                >
+                  <Mic size={22} className={`${isListening ? 'animate-pulse' : 'group-hover:scale-110 transition-transform'}`} />
                 </button>
-                <button type="button" className="flex-1 flex justify-center items-center py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-colors text-slate-300 hover:text-accent-purple group">
+                <button 
+                  type="button" 
+                  onClick={handlePhotoClick}
+                  className="flex-1 flex justify-center items-center py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-colors text-slate-300 hover:text-accent-purple group"
+                >
                   <Camera size={22} className="group-hover:scale-110 transition-transform" />
                 </button>
                 <button type="button" className="flex-1 flex justify-center items-center py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-colors text-slate-300 hover:text-accent-cyan group">
@@ -139,7 +246,7 @@ export default function CitizenPortal({ onAddComplaint }) {
 
               <button 
                 type="submit" 
-                disabled={isSubmitting || !description.trim()}
+                disabled={isSubmitting || (!description.trim() && !photoPreview)}
                 className="w-full py-4 mt-2 bg-gradient-to-r from-accent-cyan to-accent-purple rounded-xl font-bold text-white shadow-[0_0_20px_rgba(0,240,255,0.3)] hover:shadow-[0_0_30px_rgba(191,0,255,0.5)] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isSubmitting ? (

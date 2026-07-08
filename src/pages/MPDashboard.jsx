@@ -191,6 +191,12 @@ export default function MPDashboard({ complaints }) {
                   </div>
                   <p className="text-sm text-slate-200 line-clamp-2">{item.translation}</p>
                   
+                  {item.photo && (
+                    <div className="mt-2 w-full h-32 rounded-lg overflow-hidden border border-white/10">
+                      <img src={item.photo} alt="Attached issue" className="w-full h-full object-cover" />
+                    </div>
+                  )}
+                  
                   <div className="mt-3 flex items-center justify-between">
                     <span className={`text-xs font-bold ${
                       item.priority === 'High' ? 'text-red-400' : item.priority === 'Medium' ? 'text-amber-400' : 'text-blue-400'
